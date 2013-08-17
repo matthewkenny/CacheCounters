@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+  These counters must be present on the system in order for this tool to work.
+-->
+
+<PerformanceCounters>
+  
+  <Category CategoryName="CacheCounters" CategoryType="MultiInstance">
+
+    <Counters>
+
+      <add CounterName="CacheSize" CounterHelp="Number of cache item hits per second" CounterType="NumberOfItems64"/>
+
+      <add CounterName="CacheCount" CounterHelp="Number of cache item misses per second" CounterType="NumberOfItems64"/>
+
+      <add CounterName="CacheMaxSize" CounterHelp="Number of cache item removal operations per second" CounterType="NumberOfItems64"/>
+
+    </Counters>
+
+  </Category>
+
+</PerformanceCounters>
