@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Timers;
 using Sitecore.Caching;
@@ -12,6 +14,8 @@ namespace CacheCounters
     /// </summary>
     public class CacheCountersHook : IHook
     {
+        private const string CounterCategoryName = "CacheCounters";
+
         /// <summary>
         /// Gets or sets a value indicating whether to sample the cache item counts.
         /// </summary>
@@ -32,6 +36,8 @@ namespace CacheCounters
         /// </summary>
         public bool SampleSize { get; set; }
 
+        private readonly Dictionary<Tuple<string, string>, PerformanceCounter> _performanceCounterCache = new Dictionary<Tuple<string, string>, PerformanceCounter>();
+
         private readonly Timer _timer = new Timer();
 
         public void Initialize()
@@ -40,21 +46,21 @@ namespace CacheCounters
             {
                 Sitecore.Diagnostics.Log.Info("Initialising CacheCounter hook", this);
 
-                if (PerformanceCounterCategory.Exists("CacheCounters"))
+                if (PerformanceCounterCategory.Exists(CounterCategoryName))
                 {
                     TimerElapsed(this, null);
 
                     _timer.Elapsed += TimerElapsed;
-                    _timer.AutoReset = true;
-                    _timer.Enabled = true;
+                    _timer.AutoReset = false;
+                    _timer.Start();
                 }
             }
             catch (Exception ex)
             {
-                _timer.Enabled = false;
+                _timer.Stop();
                 _timer.Elapsed -= TimerElapsed;
 
-                Sitecore.Diagnostics.Log.Error("Initialisation of CacheCounter hook failed.", ex, this);
+                Sitecore.Diagnostics.Log.Error("Initialisation of CacheCounter hook failed - hook has been disabled.", ex, this);
             }
         }
 
@@ -67,11 +73,25 @@ namespace CacheCounters
         /// <returns>The performance counter, or <c>null</c> if an error occurred</returns>
         protected virtual PerformanceCounter GetPerformanceCounter(string category, string name, string instanceName)
         {
+            // Instantiating PerformanceCounter instances is relatively expensive, so re-use references.
+            var tuple = new Tuple<string, string>(name, instanceName);
+            if (_performanceCounterCache.ContainsKey(tuple))
+            {
+                return _performanceCounterCache[tuple];
+            }
+
             try
             {
-                return new PerformanceCounter(category, name, instanceName, false);
+                var counter = new PerformanceCounter(category, name, instanceName, false);
+                _performanceCounterCache.Add(tuple, counter);
+
+                return counter;
             }
-            catch (Exception)
+            catch (UnauthorizedAccessException)
+            {
+                return null;
+            }
+            catch (Win32Exception)
             {
                 return null;
             }
@@ -86,6 +106,8 @@ namespace CacheCounters
         protected virtual void TimerElapsed(object sender, ElapsedEventArgs e)
         {
             UpdateCounters();
+
+            _timer.Start();
         }
 
         /// <summary>
@@ -113,17 +135,17 @@ namespace CacheCounters
             {
                 if (SampleCount)
                 {
-                    UpdateCounter("CacheCounters", "CacheCount", cache.Name, cache.Count);
+                    UpdateCounter(CounterCategoryName, "CacheCount", cache.Name, cache.Count);
                 }
 
                 if (SampleMaxSize)
                 {
-                    UpdateCounter("CacheCounters", "CacheMaxSize", cache.Name, cache.MaxSize);
+                    UpdateCounter(CounterCategoryName, "CacheMaxSize", cache.Name, cache.MaxSize);
                 }
 
                 if (SampleSize)
                 {
-                    UpdateCounter("CacheCounters", "CacheSize", cache.Name, cache.Size);
+                    UpdateCounter(CounterCategoryName, "CacheSize", cache.Name, cache.Size);
                 }
             }
         }
