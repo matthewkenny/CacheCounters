@@ -40,20 +40,22 @@ namespace CacheCounters
 
         private readonly Timer _timer = new Timer();
 
+        /// <summary>
+        /// Entry point to hook.  Verifies that counters exist and initiates timer.
+        /// </summary>
         public void Initialize()
         {
             try
             {
                 Sitecore.Diagnostics.Log.Info("Initialising CacheCounter hook", this);
-
-                if (PerformanceCounterCategory.Exists(CounterCategoryName))
+                if (!PerformanceCounterCategory.Exists(CounterCategoryName))
                 {
-                    TimerElapsed(this, null);
-
-                    _timer.Elapsed += TimerElapsed;
-                    _timer.AutoReset = false;
-                    _timer.Start();
+                    Sitecore.Diagnostics.Log.Warn("Could not initialise CacheCounter hook - counters did not seem to be present.", this);
                 }
+
+                _timer.Elapsed += TimerElapsed;
+                _timer.AutoReset = false;
+                _timer.Start();
             }
             catch (Exception ex)
             {
