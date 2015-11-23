@@ -1,3 +1,5 @@
+/lib/Sitecore*.dll
+
 # Build Folders (you can keep bin if you'd like, to store dlls and pdbs)
 [Bb]in/
 [Oo]bj/
@@ -79,7 +81,7 @@ publish
 *.Publish.xml
 
 # NuGet Packages Directory
-packages
+/src/packages
 
 # Windows Azure Build Output
 csx
